@@ -20,7 +20,7 @@ Tujuan akhirnya adalah memfasilitasi intervensi proaktif oleh tim operasional un
 
 ## Dataset & Target
 
-* **Sumber Data:** [link Dataset](https://www.kaggle.com/datasets/datasetengineer/logistics-and-supply-chain-dataset)
+* **Sumber Data:** [Link Dataset](https://www.kaggle.com/datasets/datasetengineer/logistics-and-supply-chain-dataset)
 * **Variabel Target (Y):** **`is_delayed`**
     * Target ini didefinisikan secara biner: **1** jika variasi waktu kedatangan yang diperkirakan (`eta_variation_hours`) **lebih dari 3 jam** (Terlambat) dan **0** (Tepat Waktu).
 
@@ -101,7 +101,7 @@ Probabilitas keterlambatan (`Delay_Probability`) dikonversi menjadi kategori ris
 | :--- | :--- |
 | **< 0.33** | **Low Risk** |
 | **0.33 - 0.66** | **Moderate Risk** |
-| **> 0.66 $** | **High Risk** |
+| **> 0.66** | **High Risk** |
 
 ### 2. Laporan Output
 
