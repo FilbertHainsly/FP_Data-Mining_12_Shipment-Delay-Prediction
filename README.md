@@ -99,9 +99,9 @@ Probabilitas keterlambatan (`Delay_Probability`) dikonversi menjadi kategori ris
 
 | Probabilitas Keterlambatan | Tingkat Risiko |
 | :--- | :--- |
-| **$ < 0.33 $** | **Low Risk** |
-| **$ 0.33 \le \text{Prob} < 0.66 $** | **Moderate Risk** |
-| **$ \ge 0.66 $** | **High Risk** |
+| **< 0.33** | **Low Risk** |
+| **0.33 - 0.66** | **Moderate Risk** |
+| **> 0.66 $** | **High Risk** |
 
 ### 2. Laporan Output
 
