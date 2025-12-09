@@ -22,7 +22,7 @@ Tujuan akhirnya adalah memfasilitasi intervensi proaktif oleh tim operasional un
 
 * **Sumber Data:** `dynamic_supply_chain_logistics_dataset.csv`
 * **Variabel Target (Y):** **`is_delayed`**
-    * Target ini didefinisikan secara biner: **1** jika variasi waktu kedatangan yang diperkirakan (`eta_variation_hours`) **lebih dari 3 jam**, dan **0** jika tidak (Tepat Waktu).
+    * Target ini didefinisikan secara biner: **1** jika variasi waktu kedatangan yang diperkirakan (`eta_variation_hours`) **lebih dari 3 jam** (Terlambat) dan **0** (Tepat Waktu).
 
 ---
 
@@ -30,7 +30,7 @@ Tujuan akhirnya adalah memfasilitasi intervensi proaktif oleh tim operasional un
 
 Proyek ini mengadopsi *pipeline* yang ketat, dirancang untuk mengatasi *class imbalance* dan kompleksitas data logistik.
 
-### 1. Preprocessing & Feature Engineering
+### Preprocessing & Feature Engineering
 
 1.  **Capping Outliers:** Menggunakan metode **1.5 * IQR** untuk membatasi nilai ekstrem (outliers) pada fitur-fitur numerik.
 2.  **Feature Engineering Lanjutan:**
@@ -38,23 +38,64 @@ Proyek ini mengadopsi *pipeline* yang ketat, dirancang untuk mengatasi *class im
     * **Fitur Risiko Agregat:** Pembuatan metrik interaksi risiko seperti `traffic_weather_interaction`, `port_traffic_combo`, dan `operational_risk_combo`.
 3.  **Data Split:** Digunakan **Time-Series Split (80% Train, 20% Test)**, di mana data latih adalah data lama dan data uji adalah data terbaru.
 
-### 2. Model & Resampling
 
-| Komponen Pipeline | Teknik yang Dipilih | Fungsi |
+## Model yang Digunakan
+
+Proyek ini menguji performa 8 model klasifikasi yang dikombinasikan dengan berbagai skenario penanganan ketidakseimbangan kelas (*imbalance*).
+
+### 1. Daftar Model Klasifikasi (8 Model)
+
+1.  **Logistic Regression (LR):** Model linier sebagai *baseline*.
+2.  **K-Nearest Neighbors (KNN):** Model berbasis jarak.
+3.  **Decision Tree (DT):** Model berbasis aturan.
+4.  **Random Forest (RF):** Model *ensemble* berbasis *bagging*.
+5.  **Gradient Boosting (GB):** Model *ensemble* berbasis *boosting*.
+6.  **XGBoost (XGB):** Model *boosting* yang terdistribusi dan efisien.
+7.  **Support Vector Machine (SVM):** Model berbasis *hyperplane* (dengan kernel).
+8.  **Balanced Random Forest (BRF):** Model *ensemble* yang secara intrinsik menangani data tidak seimbang.
+
+### 2. Teknik Resampling (7 Skenario)
+
+Model-model di atas diuji di bawah 7 skenario *resampling* yang berbeda, di mana **Skenario 5 (SMOTEENN)** terbukti paling optimal.
+
+| Skenario | Teknik | Kategori |
 | :--- | :--- | :--- |
-| **Preprocessing** | `ColumnTransformer` (Standardisasi + OHE) | Menjaga konsistensi transformasi data latih dan uji. |
-| **Resampling** | **SMOTEENN** | Teknik *hybrid* (SMOTE + ENN) untuk menyeimbangkan distribusi kelas pada data latih. |
-| **Model Utama** | **Balanced Random Forest Classifier (BRFC)** | Model *ensemble* kuat yang dilatih untuk memprediksi probabilitas keterlambatan. |
+| **Skenario 1** | **No Balancing** | *Baseline* (Tanpa penanganan *imbalance*) |
+| **Skenario 2** | Oversampling: **SMOTE** | Peningkatan sampel kelas minoritas. |
+| **Skenario 3** | Undersampling: **RandomUnderSampler** | Pengurangan sampel kelas mayoritas. |
+| **Skenario 4** | Hybrid: **SMOTE-Tomek** | Gabungan SMOTE dan *Tomek Links* (membersihkan *border*). |
+| **Skenario 5** | **Hybrid: SMOTEENN (Terbaik)** | Gabungan SMOTE dan *Edited Nearest Neighbors* (membersihkan *noise*). |
+| **Skenario 6** | Oversampling: **ADASYN** | Pembuatan sampel baru yang lebih fokus di area *border*. |
+| **Skenario 7** | Ensemble: **EasyEnsemble** | Membuat beberapa *subset* seimbang dari data mayoritas. |
+
+---
+
+## Skenario Pengujian
+
+### A. Metodologi Data Splitting
+
+* **Pembagian Waktu (*Time-Series Split*):** Data dibagi menjadi **Data Latih (80% data lama)** dan **Data Uji (20% data terbaru)** berdasarkan urutan waktu. Metode ini penting untuk memastikan model dapat digeneralisasi pada data operasional di masa depan.
+
+### B. Metrik Evaluasi
+
+Karena data target sangat tidak seimbang, evaluasi difokuskan pada metrik yang sensitif terhadap kelas minoritas (Keterlambatan):
+
+1.  **Recall (Sensitivitas):** Kemampuan model untuk mengidentifikasi semua kasus keterlambatan yang sebenarnya (minimasi *False Negatives*).
+2.  **Precision:** Akurasi prediksi keterlambatan (minimasi *False Positives*).
+3.  **F1-Score:** Rata-rata harmonik dari Precision dan Recall.
+4.  **Area Under the ROC Curve (AUC-ROC):** Kemampuan diskriminasi model secara keseluruhan.
+
+### C. Pemilihan Model Terbaik
+
+Model terbaik dipilih dari kombinasi **8 Model x 7 Skenario** yang menghasilkan nilai **F1-Score tertinggi** pada *cross-validation* (atau data uji). **Kombinasi terbaik yang digunakan dalam EWS adalah Balanced Random Forest dengan SMOTEENN.**
 
 ---
 
 ## Early Warning System (EWS) Output
 
-Hasil prediksi probabilitas model dikonversi menjadi laporan EWS yang dapat ditindaklanjuti.
+### 1. Pemetaan Risiko
 
-### 1. Risk Level Mapping
-
-Probabilitas keterlambatan (`Delay_Probability`) dikategorikan sebagai berikut:
+Probabilitas keterlambatan (`Delay_Probability`) dikonversi menjadi kategori risiko dengan ambang batas yang telah ditentukan:
 
 | Probabilitas Keterlambatan | Tingkat Risiko |
 | :--- | :--- |
@@ -62,49 +103,19 @@ Probabilitas keterlambatan (`Delay_Probability`) dikategorikan sebagai berikut:
 | **$ 0.33 \le \text{Prob} < 0.66 $** | **Moderate Risk** |
 | **$ \ge 0.66 $** | **High Risk** |
 
-### 2. Output Laporan
+### 2. Laporan Output
 
 * **File Output:** **`shipment_early_warning_report.csv`**
-* Laporan diurutkan secara **menurun** berdasarkan `Delay_Probability`, sehingga kasus **risiko tertinggi** (potensi intervensi) selalu berada di urutan teratas.
-* **Kolom Laporan Kunci:** `timestamp`, `vehicle_gps_latitude`, `route_risk_level`, `Risk_Level`, `Delay_Probability`, dan `Actual_Delay_Status`.
+* Laporan diurutkan secara **menurun** berdasarkan `Delay_Probability`, menempatkan pengiriman berisiko tertinggi di urutan teratas untuk tindakan mitigasi segera.
 
 ---
 
 ## Interpretasi Model (SHAP)
 
-SHAP digunakan untuk menjelaskan kontribusi setiap fitur terhadap prediksi, memastikan transparansi model.
+SHAP digunakan pada model terbaik (BRF + SMOTEENN) untuk memberikan penjelasan lokal dan global.
 
-### 1. SHAP TreeExplainer
-
-* `shap.TreeExplainer` diinisialisasi pada model BRFC yang telah dilatih.
-* Nilai SHAP dihitung pada data uji yang sudah diproses, fokus pada **Kelas 1 (Terlambat)**.
-
-### 2. Interpretasi Visual
-
-| Plot SHAP | Tujuan | Insight yang Diberikan |
-| :--- | :--- | :--- |
-| **Bar Plot** | Menunjukkan **pentingnya fitur global** secara keseluruhan. | Fitur mana yang memiliki dampak rata-rata terbesar pada prediksi keterlambatan. |
-| **Beeswarm Plot** | Menunjukkan **dampak individual dan arah** nilai fitur. | Nilai fitur yang tinggi (merah) atau rendah (biru) mendorong prediksi ke arah **Terlambat (kanan)** atau **Tepat Waktu (kiri)**. |
-
+* **SHAP Bar Plot (Global Importance):** Menunjukkan 15 fitur utama yang paling penting secara global (rata-rata dampak absolut).
+* **SHAP Beeswarm Plot (Impact and Direction):** Menjelaskan bagaimana nilai fitur yang tinggi atau rendah (merah/biru) secara spesifik mendorong prediksi kasus ke arah **Terlambat** atau **Tepat Waktu**.
 
 
 ---
-
-## Dependencies (Library yang Dibutuhkan)
-
-* `pandas`
-* `numpy`
-* `matplotlib`
-* `seaborn`
-* `sklearn` (Preprocessing, Metrics, Model Selection)
-* `imblearn` (`SMOTEENN`, `ImbPipeline`)
-* `shap` (Interpretasi Model)
-
----
-
-## Cara Menjalankan
-
-1.  Pastikan semua *dependencies* di atas telah terinstal.
-2.  Letakkan file `dynamic_supply_chain_logistics_dataset.csv` dalam direktori proyek.
-3.  Jalankan *notebook* **`Kelompok_12_FP_datmin.ipynb`** secara berurutan.
-4.  Laporan akhir akan disimpan sebagai **`shipment_early_warning_report.csv`**.
