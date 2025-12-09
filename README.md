@@ -19,8 +19,8 @@ Tujuan akhirnya adalah memfasilitasi intervensi proaktif oleh tim operasional un
 ---
 
 ## Dataset & Target
-
-* **Sumber Data:** [Link Dataset](https://www.kaggle.com/datasets/datasetengineer/logistics-and-supply-chain-dataset)
+* Link Dataset : ** [https://www.kaggle.com/datasets/datasetengineer/logistics-and-supply-chain-dataset](https://www.kaggle.com/datasets/datasetengineer/logistics-and-supply-chain-dataset)
+* **Sumber Data:** `dynamic_supply_chain_logistics_dataset.csv`
 * **Variabel Target (Y):** **`is_delayed`**
     * Target ini didefinisikan secara biner: **1** jika variasi waktu kedatangan yang diperkirakan (`eta_variation_hours`) **lebih dari 3 jam** (Terlambat) dan **0** (Tepat Waktu).
 
